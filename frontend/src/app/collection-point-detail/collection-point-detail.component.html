@@ -98,23 +98,25 @@
                                 <td>{{ unitLabels[disposal.unit] }}</td>
                                 <td>{{ disposal.disposalDate | date:'dd/MM/yyyy HH:mm' }}</td>
                                 <td class="table-actions">
-                                    @if (pendingDisposalId() === disposal.id) {
-                                        <span class="confirmation-label">Excluir?</span>
-                                        <button type="button" class="button danger compact"
-                                            (click)="deleteDisposal(disposal)"
-                                            [disabled]="deletingDisposalId() === disposal.id">
-                                            {{ deletingDisposalId() === disposal.id ? 'Excluindo…' : 'Confirmar' }}
-                                        </button>
-                                        <button type="button" class="button secondary compact"
-                                            (click)="cancelDisposalDeletion()"
-                                            [disabled]="deletingDisposalId() === disposal.id">Cancelar</button>
-                                    } @else {
-                                        <button type="button" class="button danger-clean compact"
-                                            (click)="requestDisposalDeletion(disposal.id)"
-                                            [attr.aria-label]="'Excluir descarte de ' + materialLabels[disposal.materialType]">
-                                            Excluir
-                                        </button>
-                                    }
+                                    <div class="table-actions-content">
+                                        @if (pendingDisposalId() === disposal.id) {
+                                            <span class="confirmation-label">Excluir?</span>
+                                            <button type="button" class="button danger compact"
+                                                (click)="deleteDisposal(disposal)"
+                                                [disabled]="deletingDisposalId() === disposal.id">
+                                                {{ deletingDisposalId() === disposal.id ? 'Excluindo…' : 'Confirmar' }}
+                                            </button>
+                                            <button type="button" class="button secondary compact"
+                                                (click)="cancelDisposalDeletion()"
+                                                [disabled]="deletingDisposalId() === disposal.id">Cancelar</button>
+                                        } @else {
+                                            <button type="button" class="button danger-clean compact"
+                                                (click)="requestDisposalDeletion(disposal.id)"
+                                                [attr.aria-label]="'Excluir descarte de ' + materialLabels[disposal.materialType]">
+                                                Excluir
+                                            </button>
+                                        }
+                                    </div>
                                 </td>
                             </tr>
                         }
