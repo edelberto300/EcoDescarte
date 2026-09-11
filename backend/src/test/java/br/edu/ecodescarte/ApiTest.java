@@ -2,8 +2,10 @@ package br.edu.ecodescarte;
 
 import static br.edu.ecodescarte.TestData.point;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.verifyNoInteractions;
 import static org.mockito.Mockito.when;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.delete;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.options;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
@@ -242,6 +244,47 @@ class ApiTest {
     }
 
     @Test
+    void deletesPointAndReturns204() throws Exception {
+        when(points.findById("point-1")).thenReturn(Optional.of(point("point-1")));
+
+        mvc.perform(delete("/api/collection-points/point-1"))
+                .andExpect(status().isNoContent());
+
+        verify(disposals).deleteByCollectionPointId("point-1");
+        verify(points).delete(point("point-1"));
+    }
+
+    @Test
+    void returns404WhenDeletingMissingPoint() throws Exception {
+        mvc.perform(delete("/api/collection-points/missing"))
+                .andExpect(status().isNotFound());
+        verifyNoInteractions(disposals);
+    }
+
+    @Test
+    void deletesDisposalFromPointAndReturns204() throws Exception {
+        Disposal disposal = new Disposal("disposal-1", "point-1", MaterialType.GLASS, BigDecimal.ONE,
+                DisposalUnit.KG, LocalDateTime.of(2026, 9, 11, 10, 0));
+        when(points.findById("point-1")).thenReturn(Optional.of(point("point-1")));
+        when(disposals.findByIdAndCollectionPointId("disposal-1", "point-1"))
+                .thenReturn(Optional.of(disposal));
+
+        mvc.perform(delete("/api/collection-points/point-1/disposals/disposal-1"))
+                .andExpect(status().isNoContent());
+
+        verify(disposals).delete(disposal);
+    }
+
+    @Test
+    void returns404WhenDisposalDoesNotBelongToPoint() throws Exception {
+        when(points.findById("point-1")).thenReturn(Optional.of(point("point-1")));
+
+        mvc.perform(delete("/api/collection-points/point-1/disposals/disposal-2"))
+                .andExpect(status().isNotFound())
+                .andExpect(jsonPath("$.message").value("Descarte não encontrado."));
+    }
+
+    @Test
     void allowsFrontendCorsPreflight() throws Exception {
         mvc.perform(options("/api/collection-points")
                         .header("Origin", "http://localhost:4200")
@@ -249,6 +292,16 @@ class ApiTest {
                         .header("Access-Control-Request-Headers", "content-type"))
                 .andExpect(status().isOk())
                 .andExpect(header().string("Access-Control-Allow-Origin", "http://localhost:4200"));
+    }
+
+    @Test
+    void allowsFrontendDeleteCorsPreflight() throws Exception {
+        mvc.perform(options("/api/collection-points/point-1")
+                        .header("Origin", "http://localhost:4200")
+                        .header("Access-Control-Request-Method", "DELETE"))
+                .andExpect(status().isOk())
+                .andExpect(header().string("Access-Control-Allow-Origin", "http://localhost:4200"))
+                .andExpect(header().string("Access-Control-Allow-Methods", "GET,POST,DELETE,OPTIONS"));
     }
 
     @Test

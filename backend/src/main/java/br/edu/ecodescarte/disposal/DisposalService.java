@@ -3,6 +3,7 @@ package br.edu.ecodescarte.disposal;
 import br.edu.ecodescarte.collectionpoint.CollectionPoint;
 import br.edu.ecodescarte.collectionpoint.CollectionPointService;
 import br.edu.ecodescarte.exception.BusinessException;
+import br.edu.ecodescarte.exception.ResourceNotFoundException;
 import java.time.Clock;
 import java.time.LocalDateTime;
 import java.time.temporal.ChronoUnit;
@@ -44,5 +45,18 @@ public class DisposalService {
     public List<Disposal> findByCollectionPointId(String collectionPointId) {
         collectionPointService.findById(collectionPointId);
         return repository.findByCollectionPointIdOrderByDisposalDateDesc(collectionPointId);
+    }
+
+    public void delete(String collectionPointId, String disposalId) {
+        collectionPointService.findById(collectionPointId);
+
+        if (disposalId == null || disposalId.isBlank()) {
+            throw new BusinessException("Informe o descarte.");
+        }
+
+        Disposal disposal = repository.findByIdAndCollectionPointId(disposalId, collectionPointId)
+                .orElseThrow(() -> new ResourceNotFoundException("Descarte não encontrado."));
+
+        repository.delete(disposal);
     }
 }

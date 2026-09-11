@@ -9,6 +9,7 @@ import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.verifyNoInteractions;
 import static org.mockito.Mockito.when;
 
+import br.edu.ecodescarte.disposal.DisposalRepository;
 import br.edu.ecodescarte.exception.BusinessException;
 import br.edu.ecodescarte.exception.ResourceNotFoundException;
 import java.util.List;
@@ -29,6 +30,9 @@ class CollectionPointServiceTest {
 
     @Mock
     private CollectionPointRepository repository;
+
+    @Mock
+    private DisposalRepository disposalRepository;
 
     @InjectMocks
     private CollectionPointService service;
@@ -81,5 +85,24 @@ class CollectionPointServiceTest {
     void requiresPointId(String id) {
         assertThrows(BusinessException.class, () -> service.findById(id));
         verifyNoInteractions(repository);
+    }
+
+    @Test
+    void deletesPointAndItsDisposals() {
+        CollectionPoint existingPoint = point("point-1");
+        when(repository.findById("point-1")).thenReturn(Optional.of(existingPoint));
+
+        service.delete("point-1");
+
+        verify(disposalRepository).deleteByCollectionPointId("point-1");
+        verify(repository).delete(existingPoint);
+    }
+
+    @Test
+    void doesNotDeleteDisposalsWhenPointDoesNotExist() {
+        when(repository.findById("missing")).thenReturn(Optional.empty());
+
+        assertThrows(ResourceNotFoundException.class, () -> service.delete("missing"));
+        verifyNoInteractions(disposalRepository);
     }
 }

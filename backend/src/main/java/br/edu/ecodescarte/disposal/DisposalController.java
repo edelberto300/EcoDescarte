@@ -3,6 +3,7 @@ package br.edu.ecodescarte.disposal;
 import jakarta.validation.Valid;
 import java.util.List;
 import org.springframework.http.HttpStatus;
+import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
@@ -30,5 +31,11 @@ public class DisposalController {
     @GetMapping
     public List<Disposal> findAll(@PathVariable String id) {
         return service.findByCollectionPointId(id);
+    }
+
+    @DeleteMapping("/{disposalId}")
+    @ResponseStatus(HttpStatus.NO_CONTENT)
+    public void delete(@PathVariable String id, @PathVariable String disposalId) {
+        service.delete(id, disposalId);
     }
 }

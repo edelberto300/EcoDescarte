@@ -1,5 +1,6 @@
 package br.edu.ecodescarte.collectionpoint;
 
+import br.edu.ecodescarte.disposal.DisposalRepository;
 import br.edu.ecodescarte.exception.BusinessException;
 import br.edu.ecodescarte.exception.ResourceNotFoundException;
 import java.util.List;
@@ -10,9 +11,11 @@ import org.springframework.stereotype.Service;
 public class CollectionPointService {
 
     private final CollectionPointRepository repository;
+    private final DisposalRepository disposalRepository;
 
-    public CollectionPointService(CollectionPointRepository repository) {
+    public CollectionPointService(CollectionPointRepository repository, DisposalRepository disposalRepository) {
         this.repository = repository;
+        this.disposalRepository = disposalRepository;
     }
 
     public CollectionPoint create(CollectionPoint point) {
@@ -33,5 +36,12 @@ public class CollectionPointService {
 
         return repository.findById(id)
                 .orElseThrow(() -> new ResourceNotFoundException("Ponto de coleta não encontrado."));
+    }
+
+    public void delete(String id) {
+        CollectionPoint point = findById(id);
+
+        disposalRepository.deleteByCollectionPointId(id);
+        repository.delete(point);
     }
 }

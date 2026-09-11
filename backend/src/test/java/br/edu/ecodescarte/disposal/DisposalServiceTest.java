@@ -20,6 +20,7 @@ import java.time.Instant;
 import java.time.LocalDateTime;
 import java.time.ZoneOffset;
 import java.util.List;
+import java.util.Optional;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -132,6 +133,34 @@ class DisposalServiceTest {
         when(collectionPointService.findById("missing")).thenThrow(new ResourceNotFoundException("Ponto não encontrado."));
 
         assertThrows(ResourceNotFoundException.class, () -> service.findByCollectionPointId("missing"));
+        verifyNoInteractions(repository);
+    }
+
+    @Test
+    void deletesDisposalBelongingToRequestedPoint() {
+        Disposal disposal = new Disposal("disposal-1", "point-1", MaterialType.GLASS, BigDecimal.ONE,
+                DisposalUnit.KG, LocalDateTime.of(2026, 9, 11, 10, 0));
+        when(collectionPointService.findById("point-1")).thenReturn(point("point-1"));
+        when(repository.findByIdAndCollectionPointId("disposal-1", "point-1")).thenReturn(Optional.of(disposal));
+
+        service.delete("point-1", "disposal-1");
+
+        verify(repository).delete(disposal);
+    }
+
+    @Test
+    void rejectsDisposalFromAnotherPoint() {
+        when(collectionPointService.findById("point-1")).thenReturn(point("point-1"));
+        when(repository.findByIdAndCollectionPointId("disposal-2", "point-1")).thenReturn(Optional.empty());
+
+        assertThrows(ResourceNotFoundException.class, () -> service.delete("point-1", "disposal-2"));
+    }
+
+    @Test
+    void doesNotSearchDisposalWhenPointDoesNotExist() {
+        when(collectionPointService.findById("missing")).thenThrow(new ResourceNotFoundException("Ponto não encontrado."));
+
+        assertThrows(ResourceNotFoundException.class, () -> service.delete("missing", "disposal-1"));
         verifyNoInteractions(repository);
     }
 }
