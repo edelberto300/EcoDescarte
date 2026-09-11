@@ -16,4 +16,10 @@ export class DisposalService {
     findByCollectionPointId(collectionPointId: string): Observable<Disposal[]> {
         return this.http.get<Disposal[]>(`${this.url}/${encodeURIComponent(collectionPointId)}/disposals`);
     }
+
+    delete(collectionPointId: string, disposalId: string): Observable<void> {
+        return this.http.delete<void>(
+            `${this.url}/${encodeURIComponent(collectionPointId)}/disposals/${encodeURIComponent(disposalId)}`
+        );
+    }
 }

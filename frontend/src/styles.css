@@ -38,6 +38,11 @@ main.container { min-height: calc(100vh - 180px); padding-block: 40px 64px; }
 .button:hover { background: #0f4c35; }
 .button.secondary { background: #fff; color: var(--green); border-color: var(--border); }
 .button.secondary:hover { background: #eef3ec; }
+.button.danger { color: #fff; background: #f4366f; border-color: #f4366f; }
+.button.danger:hover { background: #dc2a60; border-color: #dc2a60; }
+.button.danger-clean { color: #f4366f; background: #feebee; border-color: #fcccd5; }
+.button.danger-clean:hover { background: #fcccd5; }
+.button.compact { min-height: 34px; padding: 5px 12px; font-size: 0.8rem; }
 .button:disabled { opacity: 0.6; cursor: wait; }
 .hero .button { flex-shrink: 0; }
 .section-heading { display: flex; justify-content: space-between; align-items: center; gap: 16px; margin-bottom: 20px; }
@@ -52,6 +57,7 @@ main.container { min-height: calc(100vh - 180px); padding-block: 40px 64px; }
 .back-link { display: inline-block; margin-bottom: 24px; font-size: 0.9rem; }
 .page-intro { margin-bottom: 28px; }
 .page-intro p { margin-bottom: 0; }
+.page-intro-with-actions { display: flex; align-items: flex-start; justify-content: space-between; gap: 20px; }
 .form-panel { max-width: 800px; }
 .form-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; }
 .field { display: flex; flex-direction: column; gap: 6px; font-size: 0.9rem; }
@@ -70,6 +76,10 @@ input[type="checkbox"] { width: 18px; height: 18px; accent-color: var(--green); 
 .error, .success { padding: 14px 18px; border-radius: 8px; margin-block: 16px; }
 .error { color: #8d2929; background: #fff0ef; border: 1px solid #f0c8c4; }
 .success { color: #205436; background: #eaf4e9; border: 1px solid #bedabf; }
+.confirmation { display: flex; align-items: center; justify-content: space-between; gap: 20px; padding: 18px 20px; margin-bottom: 24px; color: #3e3e3e; background: #fef5f7; border: 1px solid #fcccd5; border-radius: 12px; }
+.confirmation p { margin: 5px 0 0; color: var(--muted); font-size: 0.88rem; }
+.confirmation-actions, .table-actions { display: flex; align-items: center; justify-content: flex-end; gap: 8px; }
+.confirmation-label { color: #8d2929; font-size: 0.8rem; font-weight: 650; }
 .field-error { color: #992e2e; font-size: 0.8rem; }
 .detail-grid { display: grid; grid-template-columns: 1.2fr 1fr; gap: 24px; margin-bottom: 32px; }
 .detail-grid .panel > :last-child { margin-bottom: 0; }
@@ -83,6 +93,7 @@ th, td { padding: 15px 20px; border-bottom: 1px solid var(--border); }
 th { background: #eef3ea; font-size: 0.8rem; }
 tbody tr:last-child td { border-bottom: 0; }
 td:last-child { white-space: nowrap; }
+.table-actions { width: 1%; }
 .sr-only { position: absolute; width: 1px; height: 1px; padding: 0; margin: -1px; overflow: hidden; clip: rect(0, 0, 0, 0); border: 0; }
 
 @media (max-width: 850px) {
@@ -95,6 +106,8 @@ td:last-child { white-space: nowrap; }
     main.container { padding-block: 28px 40px; }
     .ods-label { max-width: 110px; text-align: right; font-size: 0.7rem; }
     .hero { padding: 24px; }
+    .page-intro-with-actions, .confirmation { align-items: stretch; flex-direction: column; }
+    .confirmation-actions { justify-content: flex-start; }
     .hero .button { width: 100%; }
     .cards, .form-grid, .detail-grid, .checkbox-grid { grid-template-columns: 1fr; }
     .panel, .card { padding: 22px; }

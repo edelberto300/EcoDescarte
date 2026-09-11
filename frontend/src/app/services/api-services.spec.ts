@@ -44,6 +44,13 @@ describe('API services', () => {
         request.flush(samplePoint);
     });
 
+    it('deletes the requested collection point', () => {
+        points.delete('point/1').subscribe((response) => expect(response).toBeNull());
+        const request = http.expectOne(`${url}/point%2F1`);
+        expect(request.request.method).toBe('DELETE');
+        request.flush(null);
+    });
+
     it('posts a disposal to its collection point', () => {
         const input = { materialType: sampleDisposal.materialType, quantity: 10, unit: sampleDisposal.unit };
         disposals.create('point-1', input).subscribe((response) => expect(response).toEqual(sampleDisposal));
@@ -56,6 +63,13 @@ describe('API services', () => {
     it('lists disposals for the requested point', () => {
         disposals.findByCollectionPointId('point-1').subscribe((response) => expect(response).toEqual([sampleDisposal]));
         http.expectOne(`${url}/point-1/disposals`).flush([sampleDisposal]);
+    });
+
+    it('deletes a disposal from the requested point', () => {
+        disposals.delete('point/1', 'disposal/1').subscribe((response) => expect(response).toBeNull());
+        const request = http.expectOne(`${url}/point%2F1/disposals/disposal%2F1`);
+        expect(request.request.method).toBe('DELETE');
+        request.flush(null);
     });
 
     it('preserves business errors for the interface', () => {
