@@ -1,0 +1,52 @@
+<form class="panel disposal-form" [formGroup]="form" (ngSubmit)="save()" [attr.aria-busy]="saving()">
+    <h2>Registrar descarte</h2>
+    <p class="muted">Informe o material e a quantidade descartada neste local.</p>
+    <fieldset [disabled]="saving()">
+        <legend class="sr-only">Dados do descarte</legend>
+        <div class="form-grid">
+            <div class="field full-width">
+                <label for="material">Material</label>
+                <select id="material" formControlName="materialType" required
+                    [attr.aria-invalid]="form.controls.materialType.touched && form.controls.materialType.invalid" aria-describedby="material-error">
+                    <option [ngValue]="null" disabled>Selecione um material</option>
+                    @for (material of point().acceptedMaterials; track $index) {
+                        <option [ngValue]="material">{{ materialLabels[material] }}</option>
+                    }
+                </select>
+                @if (form.controls.materialType.touched && form.controls.materialType.invalid) {
+                    <span id="material-error" class="field-error">Selecione o material.</span>
+                }
+            </div>
+            <div class="field">
+                <label for="quantity">Quantidade</label>
+                <input id="quantity" type="number" formControlName="quantity" step="any" placeholder="Ex.: 10" required
+                    [attr.aria-invalid]="form.controls.quantity.touched && form.controls.quantity.invalid" aria-describedby="quantity-error">
+                @if (form.controls.quantity.touched && form.controls.quantity.invalid) {
+                    <span id="quantity-error" class="field-error">Informe uma quantidade maior que zero.</span>
+                }
+            </div>
+            <div class="field">
+                <label for="unit">Unidade</label>
+                <select id="unit" formControlName="unit" required
+                    [attr.aria-invalid]="form.controls.unit.touched && form.controls.unit.invalid" aria-describedby="unit-error">
+                    <option [ngValue]="null" disabled>Selecione uma unidade</option>
+                    @for (unit of units; track unit) {
+                        <option [ngValue]="unit">{{ unitLabels[unit] }}</option>
+                    }
+                </select>
+                @if (form.controls.unit.touched && form.controls.unit.invalid) {
+                    <span id="unit-error" class="field-error">Selecione a unidade.</span>
+                }
+            </div>
+        </div>
+    </fieldset>
+
+    @if (error()) {
+        <p class="error" role="alert">{{ error() }}</p>
+    }
+
+    <div class="actions">
+        <button class="button" type="submit" [disabled]="saving()">{{ saving() ? 'Registrando…' : 'Registrar descarte' }}</button>
+        <button class="button secondary" type="button" [disabled]="saving()" (click)="cancelled.emit()">Cancelar</button>
+    </div>
+</form>

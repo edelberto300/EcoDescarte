@@ -1,0 +1,81 @@
+<a class="back-link" routerLink="/">← Voltar aos pontos de coleta</a>
+
+@if (loading()) {
+    <p class="state" role="status">Carregando ponto de coleta…</p>
+} @else if (error()) {
+    <p class="error" role="alert">{{ error() }}</p>
+} @else if (point(); as currentPoint) {
+    <div class="page-intro">
+        <p class="eyebrow">Ponto de coleta</p>
+        <h1 class="text-block">{{ currentPoint.name }}</h1>
+        <p class="muted">{{ currentPoint.address.city }} / {{ currentPoint.address.state }}</p>
+    </div>
+    <div class="detail-grid">
+        <section class="panel" aria-labelledby="about-title">
+            <h2 id="about-title">Sobre o local</h2>
+            <p class="text-block">{{ currentPoint.description || 'Nenhuma descrição informada.' }}</p>
+            <span class="detail-label">Endereço</span>
+            <p class="text-block">
+                {{ currentPoint.address.street }}, {{ currentPoint.address.number }} — {{ currentPoint.address.neighborhood }}<br>
+                {{ currentPoint.address.city }} / {{ currentPoint.address.state }}<br>
+                CEP {{ currentPoint.address.zipCode }}
+            </p>
+            <span class="detail-label">Horário de funcionamento</span>
+            <p class="text-block">{{ currentPoint.openingHours }}</p>
+        </section>
+        <section class="panel" aria-labelledby="accepted-title">
+            <h2 id="accepted-title">Materiais aceitos</h2>
+            <ul class="material-list">
+                @for (material of currentPoint.acceptedMaterials; track $index) {
+                    <li>{{ materialLabels[material] }}</li>
+                }
+            </ul>
+            <p class="muted">Realizou um descarte neste local? Registre o material e a quantidade.</p>
+            @if (!showDisposalForm()) {
+                <button type="button" class="button" (click)="openDisposalForm()">Registrar descarte</button>
+            }
+        </section>
+    </div>
+
+    @if (showDisposalForm()) {
+        <app-disposal-form [point]="currentPoint" (registered)="onDisposalRegistered($event)"
+            (cancelled)="showDisposalForm.set(false)" />
+    }
+
+    @if (success()) {
+        <p class="success" role="status">{{ success() }}</p>
+    }
+
+    <section aria-labelledby="disposals-title">
+        <div class="section-heading">
+            <h2 id="disposals-title">Descartes registrados</h2>
+        </div>
+        @if (disposals().length === 0) {
+            <p class="state">Nenhum descarte registrado neste ponto.</p>
+        } @else {
+            <div class="table-wrapper" tabindex="0" role="region" aria-label="Lista de descartes registrados">
+                <table>
+                    <caption class="sr-only">Descartes registrados neste ponto de coleta</caption>
+                    <thead>
+                        <tr>
+                            <th scope="col">Material</th>
+                            <th scope="col">Quantidade</th>
+                            <th scope="col">Unidade</th>
+                            <th scope="col">Data</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        @for (disposal of disposals(); track disposal.id) {
+                            <tr>
+                                <td>{{ materialLabels[disposal.materialType] }}</td>
+                                <td>{{ disposal.quantity | number:'1.0-20' }}</td>
+                                <td>{{ unitLabels[disposal.unit] }}</td>
+                                <td>{{ disposal.disposalDate | date:'dd/MM/yyyy HH:mm' }}</td>
+                            </tr>
+                        }
+                    </tbody>
+                </table>
+            </div>
+        }
+    </section>
+}

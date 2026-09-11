@@ -1,0 +1,42 @@
+<section class="hero" aria-labelledby="page-title">
+    <div>
+        <p class="eyebrow">Um destino certo para cada resíduo</p>
+        <h1 id="page-title">EcoDescarte</h1>
+        <p class="muted">Encontre locais adequados para descartar seus resíduos.</p>
+    </div>
+    <a class="button" routerLink="/collection-points/new">Cadastrar ponto de coleta <span aria-hidden="true">+</span></a>
+</section>
+
+<section aria-labelledby="points-title" [attr.aria-busy]="loading()">
+    <div class="section-heading">
+        <h2 id="points-title">Pontos de coleta</h2>
+    </div>
+
+    @if (loading()) {
+        <p class="state" role="status">Carregando pontos de coleta…</p>
+    } @else if (error()) {
+        <p class="error" role="alert">{{ error() }}</p>
+    } @else if (points().length === 0) {
+        <div class="state">
+            <h3>Nenhum ponto de coleta cadastrado</h3>
+            <p>Cadastre o primeiro local para começar.</p>
+            <a class="button secondary" routerLink="/collection-points/new">Cadastrar ponto de coleta</a>
+        </div>
+    } @else {
+        <div class="cards">
+            @for (point of points(); track point.id) {
+                <article class="card">
+                    <h3 class="text-block">{{ point.name }}</h3>
+                    <p class="muted">{{ point.address.city }} / {{ point.address.state }}</p>
+                    <ul class="material-list" aria-label="Materiais aceitos">
+                        @for (material of point.acceptedMaterials; track $index) {
+                            <li>{{ materialLabels[material] }}</li>
+                        }
+                    </ul>
+                    <a class="button secondary" [routerLink]="['/collection-points', point.id]"
+                        [attr.aria-label]="'Ver detalhes de ' + point.name">Ver detalhes <span aria-hidden="true">→</span></a>
+                </article>
+            }
+        </div>
+    }
+</section>

@@ -1,0 +1,73 @@
+<a class="back-link" routerLink="/">← Voltar aos pontos de coleta</a>
+<div class="page-intro">
+    <p class="eyebrow">Pontos de coleta</p>
+    <h1>Cadastrar ponto de coleta</h1>
+    <p class="muted">Informe os dados do local e os materiais que ele recebe.</p>
+</div>
+
+<form class="panel form-panel" [formGroup]="form" (ngSubmit)="save()" [attr.aria-busy]="saving()">
+    <p class="muted">Todos os campos são obrigatórios, exceto a descrição.</p>
+    <fieldset [disabled]="saving()">
+        <legend class="sr-only">Dados do ponto de coleta</legend>
+        <div class="form-grid">
+            <div class="field full-width">
+                <label for="name">Nome</label>
+                <input id="name" formControlName="name" placeholder="Eco Ponto Central" required
+                    [attr.aria-invalid]="form.controls.name.touched && form.controls.name.invalid" aria-describedby="name-error">
+                @if (form.controls.name.touched && form.controls.name.invalid) {
+                    <span id="name-error" class="field-error">Informe o nome do ponto de coleta.</span>
+                }
+            </div>
+            <div class="field full-width">
+                <label for="description">Descrição <span class="muted">(opcional)</span></label>
+                <textarea id="description" formControlName="description" placeholder="Informações sobre o local"></textarea>
+            </div>
+            <div class="form-grid full-width" formGroupName="address">
+                @for (field of addressFields; track field.key) {
+                    <div class="field">
+                        <label [for]="field.key">{{ field.label }}</label>
+                        <input [id]="field.key" [formControlName]="field.key" [placeholder]="field.placeholder"
+                            [autocomplete]="field.autocomplete" required
+                            [attr.aria-invalid]="form.controls.address.controls[field.key].touched && form.controls.address.controls[field.key].invalid"
+                            [attr.aria-describedby]="field.key + '-error'">
+                        @if (form.controls.address.controls[field.key].touched && form.controls.address.controls[field.key].invalid) {
+                            <span [id]="field.key + '-error'" class="field-error">Preencha este campo.</span>
+                        }
+                    </div>
+                }
+            </div>
+            <div class="field full-width">
+                <label for="opening-hours">Horário de funcionamento</label>
+                <input id="opening-hours" formControlName="openingHours" placeholder="Segunda a sexta, 08:00 - 18:00" required
+                    [attr.aria-invalid]="form.controls.openingHours.touched && form.controls.openingHours.invalid" aria-describedby="hours-error">
+                @if (form.controls.openingHours.touched && form.controls.openingHours.invalid) {
+                    <span id="hours-error" class="field-error">Informe o horário de funcionamento.</span>
+                }
+            </div>
+        </div>
+        <fieldset formArrayName="acceptedMaterials" aria-describedby="materials-help">
+            <legend>Materiais aceitos</legend>
+            <p id="materials-help" class="muted">Selecione pelo menos um material.</p>
+            <div class="checkbox-grid">
+                @for (material of materialTypes; track material; let index = $index) {
+                    <label class="checkbox-label">
+                        <input type="checkbox" [formControlName]="index">
+                        {{ materialLabels[material] }}
+                    </label>
+                }
+            </div>
+            @if (submitted() && !hasSelectedMaterial) {
+                <p class="field-error" role="alert">Selecione pelo menos um material aceito.</p>
+            }
+        </fieldset>
+    </fieldset>
+
+    @if (error()) {
+        <p class="error" role="alert">{{ error() }}</p>
+    }
+
+    <div class="actions">
+        <button class="button" type="submit" [disabled]="saving()">{{ saving() ? 'Salvando…' : 'Salvar' }}</button>
+        <a class="button secondary" routerLink="/">Cancelar</a>
+    </div>
+</form>
