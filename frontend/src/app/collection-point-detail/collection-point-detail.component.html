@@ -11,8 +11,13 @@
             <h1 class="text-block">{{ currentPoint.name }}</h1>
             <p class="muted">{{ currentPoint.address.city }} / {{ currentPoint.address.state }}</p>
         </div>
-        <button type="button" class="button danger-clean" (click)="requestPointDeletion()"
-            [disabled]="deletingPoint()">Excluir ponto</button>
+        <div class="actions">
+            @if (!deletingPoint()) {
+                <a class="button secondary" [routerLink]="['/collection-points', currentPoint.id, 'edit']">Editar ponto</a>
+            }
+            <button type="button" class="button danger-clean" (click)="requestPointDeletion()"
+                [disabled]="deletingPoint()">Excluir ponto</button>
+        </div>
     </div>
 
     @if (pointDeleteConfirmation()) {

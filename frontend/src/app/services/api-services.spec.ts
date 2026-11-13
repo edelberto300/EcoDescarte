@@ -44,6 +44,15 @@ describe('API services', () => {
         request.flush(samplePoint);
     });
 
+    it('updates the requested point using an encoded id', () => {
+        const { id, ...input } = samplePoint;
+        points.update('point/1', input).subscribe((response) => expect(response.id).toBe(id));
+        const request = http.expectOne(`${url}/point%2F1`);
+        expect(request.request.method).toBe('PUT');
+        expect(request.request.body).toEqual(input);
+        request.flush(samplePoint);
+    });
+
     it('deletes the requested collection point', () => {
         points.delete('point/1').subscribe((response) => expect(response).toBeNull());
         const request = http.expectOne(`${url}/point%2F1`);

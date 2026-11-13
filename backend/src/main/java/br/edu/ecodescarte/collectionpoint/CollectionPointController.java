@@ -9,6 +9,7 @@ import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.bind.annotation.PutMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.ResponseStatus;
@@ -28,6 +29,11 @@ public class CollectionPointController {
     public ResponseEntity<CollectionPoint> create(@Valid @RequestBody CollectionPoint point) {
         CollectionPoint created = service.create(point);
         return ResponseEntity.created(URI.create("/api/collection-points/" + created.id())).body(created);
+    }
+
+    @PutMapping("/{id}")
+    public CollectionPoint update(@PathVariable String id, @Valid @RequestBody CollectionPoint point) {
+        return service.update(id, point);
     }
 
     @GetMapping

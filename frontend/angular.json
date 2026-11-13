@@ -46,7 +46,16 @@
         "test": {
           "builder": "@angular/build:unit-test",
           "options": {
-            "tsConfig": "tsconfig.spec.json"
+            "tsConfig": "tsconfig.spec.json",
+            "coverageInclude": ["src/**/*.ts"],
+            "coverageExclude": ["src/**/*.spec.ts", "src/app/testing/**"],
+            "coverageReporters": ["text", "html", "lcov", "json-summary"],
+            "coverageThresholds": {
+              "lines": 70,
+              "statements": 70,
+              "branches": 70,
+              "functions": 70
+            }
           }
         }
       }

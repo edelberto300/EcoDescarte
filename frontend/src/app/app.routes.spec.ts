@@ -2,9 +2,9 @@ import { provideHttpClient } from '@angular/common/http';
 import { HttpTestingController, provideHttpClientTesting } from '@angular/common/http/testing';
 import { TestBed } from '@angular/core/testing';
 import { By } from '@angular/platform-browser';
-import { provideRouter } from '@angular/router';
+import { provideRouter, Router } from '@angular/router';
 import { RouterTestingHarness } from '@angular/router/testing';
-import { afterEach, beforeEach, describe, expect, it } from 'vitest';
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { environment } from '../environments/environment';
 import { routes } from './app.routes';
 import { CollectionPointDetailComponent } from './collection-point-detail/collection-point-detail.component';
@@ -34,6 +34,81 @@ describe('Routes and HTTP integration', () => {
 
         await harness.navigateByUrl('/collection-points/new', CollectionPointFormComponent);
         expect(harness.routeNativeElement?.querySelectorAll('input[type="checkbox"]').length).toBe(7);
+    });
+
+    it('loads and saves the edit form through the real route', async () => {
+        const harness = await RouterTestingHarness.create();
+        const form = await harness.navigateByUrl('/collection-points/point-1/edit', CollectionPointFormComponent);
+        form.save();
+        const load = http.expectOne(`${url}/point-1`);
+        expect(load.request.method).toBe('GET');
+        expect(form.ready()).toBe(false);
+        load.flush(samplePoint);
+        harness.detectChanges();
+        expect(form.form.controls.name.value).toBe(samplePoint.name);
+        expect(form.form.controls.acceptedMaterials.value).toEqual([true, false, false, true, false, false, false]);
+        expect(harness.routeNativeElement?.textContent).toContain('Editar ponto');
+
+        form.form.controls.name.setValue('Nome corrigido');
+        form.save();
+        form.save();
+        const update = http.expectOne(`${url}/point-1`);
+        expect(update.request.method).toBe('PUT');
+        expect(update.request.body.name).toBe('Nome corrigido');
+        expect(update.request.body.id).toBeUndefined();
+        update.flush({ message: 'Banco indisponível.' }, { status: 503, statusText: 'Unavailable' });
+        expect(form.saving()).toBe(false);
+        expect(form.error()).toBe('Banco indisponível.');
+        expect(form.form.controls.name.value).toBe('Nome corrigido');
+    });
+
+    it('returns to the same point after saving an edit', async () => {
+        const harness = await RouterTestingHarness.create();
+        const form = await harness.navigateByUrl('/collection-points/point-1/edit', CollectionPointFormComponent);
+        http.expectOne(`${url}/point-1`).flush(samplePoint);
+        const navigate = vi.spyOn(TestBed.inject(Router), 'navigate').mockResolvedValue(true);
+        form.save();
+        http.expectOne(`${url}/point-1`).flush(samplePoint);
+        expect(navigate).toHaveBeenCalledWith(['/collection-points', 'point-1']);
+        expect(form.saving()).toBe(false);
+        navigate.mockRestore();
+    });
+
+    it('blocks saving when the edit target is missing', async () => {
+        const harness = await RouterTestingHarness.create();
+        const form = await harness.navigateByUrl('/collection-points/missing/edit', CollectionPointFormComponent);
+        http.expectOne(`${url}/missing`).flush({ message: 'Ponto não encontrado.' }, { status: 404, statusText: 'Not Found' });
+        form.save();
+        http.expectNone(`${url}/missing`);
+        expect(form.ready()).toBe(false);
+        expect(form.loading()).toBe(false);
+        expect(form.error()).toBe('Ponto não encontrado.');
+    });
+
+    it('cancels an old edit load and resets the form for the next point', async () => {
+        const harness = await RouterTestingHarness.create();
+        await harness.navigateByUrl('/collection-points/point-1/edit', CollectionPointFormComponent);
+        const old = http.expectOne(`${url}/point-1`);
+        const form = await harness.navigateByUrl('/collection-points/point-2/edit', CollectionPointFormComponent);
+        expect(old.cancelled).toBe(true);
+        expect(form.form.controls.name.value).toBe('');
+        http.expectOne(`${url}/point-2`).flush({ ...samplePoint, id: 'point-2', description: null });
+        expect(form.pointId()).toBe('point-2');
+        expect(form.form.controls.description.value).toBe('');
+        expect(form.ready()).toBe(true);
+    });
+
+    it('cancels a pending save when leaving an edit target', async () => {
+        const harness = await RouterTestingHarness.create();
+        const form = await harness.navigateByUrl('/collection-points/point-1/edit', CollectionPointFormComponent);
+        http.expectOne(`${url}/point-1`).flush(samplePoint);
+        form.save();
+        const pending = http.expectOne(`${url}/point-1`);
+        await harness.navigateByUrl('/collection-points/point-2/edit', CollectionPointFormComponent);
+        expect(pending.cancelled).toBe(true);
+        http.expectOne(`${url}/point-2`).flush({ ...samplePoint, id: 'point-2' });
+        expect(form.saving()).toBe(false);
+        expect(form.pointId()).toBe('point-2');
     });
 
     it('loads details and adds a saved disposal to the visible list', async () => {

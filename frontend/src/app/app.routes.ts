@@ -15,6 +15,12 @@ export const routes: Routes = [
             .then((module) => module.CollectionPointFormComponent)
     },
     {
+        path: 'collection-points/:id/edit',
+        title: 'Editar ponto | EcoDescarte',
+        loadComponent: () => import('./collection-point-form/collection-point-form.component')
+            .then((module) => module.CollectionPointFormComponent)
+    },
+    {
         path: 'collection-points/:id',
         title: 'Detalhes do ponto | EcoDescarte',
         loadComponent: () => import('./collection-point-detail/collection-point-detail.component')

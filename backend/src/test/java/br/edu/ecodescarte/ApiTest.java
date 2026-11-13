@@ -2,6 +2,7 @@ package br.edu.ecodescarte;
 
 import static br.edu.ecodescarte.TestData.point;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.verifyNoInteractions;
 import static org.mockito.Mockito.when;
@@ -9,6 +10,7 @@ import static org.springframework.test.web.servlet.request.MockMvcRequestBuilder
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.options;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.put;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.header;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
@@ -38,6 +40,10 @@ import org.springframework.boot.test.autoconfigure.web.servlet.WebMvcTest;
 import org.springframework.context.annotation.Import;
 import org.springframework.dao.DataAccessResourceFailureException;
 import org.springframework.data.domain.Sort;
+import org.springframework.data.mongodb.core.FindAndModifyOptions;
+import org.springframework.data.mongodb.core.MongoTemplate;
+import org.springframework.data.mongodb.core.query.Query;
+import org.springframework.data.mongodb.core.query.Update;
 import org.springframework.http.MediaType;
 import org.springframework.test.context.bean.override.mockito.MockitoBean;
 import org.springframework.test.web.servlet.MockMvc;
@@ -57,6 +63,9 @@ class ApiTest {
 
     @MockitoBean
     private DisposalRepository disposals;
+
+    @MockitoBean
+    private MongoTemplate mongoTemplate;
 
     @Test
     void createsPointReturning201AndLocation() throws Exception {
@@ -116,6 +125,76 @@ class ApiTest {
         mvc.perform(post("/api/collection-points").contentType(MediaType.APPLICATION_JSON).content(body.toString()))
                 .andExpect(status().isBadRequest());
         verifyNoInteractions(points);
+    }
+
+    @Test
+    void updatesPointReturningUpdatedDocument() throws Exception {
+        CollectionPoint updated = new CollectionPoint("point-1", "Novo nome", "Descrição atualizada",
+                point(null).address(), List.of(MaterialType.GLASS), "09:00 - 19:00");
+        when(mongoTemplate.findAndModify(any(Query.class), any(Update.class),
+                any(FindAndModifyOptions.class), eq(CollectionPoint.class))).thenReturn(updated);
+        ObjectNode body = mapper.valueToTree(updated);
+        body.put("id", "another-point");
+
+        mvc.perform(put("/api/collection-points/point-1").contentType(MediaType.APPLICATION_JSON)
+                        .content(body.toString()))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.id").value("point-1"))
+                .andExpect(jsonPath("$.name").value("Novo nome"))
+                .andExpect(jsonPath("$.openingHours").value("09:00 - 19:00"));
+        verifyNoInteractions(disposals);
+    }
+
+    @Test
+    void returns404WhenUpdatingMissingPoint() throws Exception {
+        mvc.perform(put("/api/collection-points/missing").contentType(MediaType.APPLICATION_JSON)
+                        .content(mapper.writeValueAsString(point(null))))
+                .andExpect(status().isNotFound());
+    }
+
+    @ParameterizedTest
+    @ValueSource(strings = {"name", "openingHours", "address", "acceptedMaterials"})
+    void validatesUpdateBeforeWriting(String field) throws Exception {
+        ObjectNode body = mapper.valueToTree(point(null));
+        body.remove(field);
+
+        mvc.perform(put("/api/collection-points/point-1").contentType(MediaType.APPLICATION_JSON)
+                        .content(body.toString()))
+                .andExpect(status().isBadRequest());
+        verifyNoInteractions(mongoTemplate, points, disposals);
+    }
+
+    @Test
+    void validatesNestedAddressOnUpdate() throws Exception {
+        ObjectNode body = mapper.valueToTree(point(null));
+        ((ObjectNode) body.get("address")).put("city", " ");
+
+        mvc.perform(put("/api/collection-points/point-1").contentType(MediaType.APPLICATION_JSON)
+                        .content(body.toString()))
+                .andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.errors['address.city']").exists());
+        verifyNoInteractions(mongoTemplate, points, disposals);
+    }
+
+    @Test
+    void allowsFrontendPutCorsPreflight() throws Exception {
+        mvc.perform(options("/api/collection-points/point-1")
+                        .header("Origin", "http://localhost:4200")
+                        .header("Access-Control-Request-Method", "PUT"))
+                .andExpect(status().isOk())
+                .andExpect(header().string("Access-Control-Allow-Methods", "GET,POST,PUT,DELETE,OPTIONS"));
+    }
+
+    @Test
+    void returns503WhenUpdateCannotAccessDatabase() throws Exception {
+        when(mongoTemplate.findAndModify(any(Query.class), any(Update.class),
+                any(FindAndModifyOptions.class), eq(CollectionPoint.class)))
+                .thenThrow(new DataAccessResourceFailureException("private connection details"));
+
+        mvc.perform(put("/api/collection-points/point-1").contentType(MediaType.APPLICATION_JSON)
+                        .content(mapper.writeValueAsString(point(null))))
+                .andExpect(status().isServiceUnavailable())
+                .andExpect(jsonPath("$.message").value("Banco de dados indisponível. Tente novamente mais tarde."));
     }
 
     @Test
@@ -301,7 +380,7 @@ class ApiTest {
                         .header("Access-Control-Request-Method", "DELETE"))
                 .andExpect(status().isOk())
                 .andExpect(header().string("Access-Control-Allow-Origin", "http://localhost:4200"))
-                .andExpect(header().string("Access-Control-Allow-Methods", "GET,POST,DELETE,OPTIONS"));
+                .andExpect(header().string("Access-Control-Allow-Methods", "GET,POST,PUT,DELETE,OPTIONS"));
     }
 
     @Test

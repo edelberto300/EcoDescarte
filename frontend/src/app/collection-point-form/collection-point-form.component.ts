@@ -1,8 +1,8 @@
 import { Component, DestroyRef, inject, signal } from '@angular/core';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { FormBuilder, ReactiveFormsModule, Validators } from '@angular/forms';
-import { Router, RouterLink } from '@angular/router';
-import { finalize } from 'rxjs';
+import { ActivatedRoute, Router, RouterLink } from '@angular/router';
+import { catchError, distinctUntilChanged, finalize, map, of, skip, switchMap, takeUntil } from 'rxjs';
 import { Address, MATERIAL_LABELS, MATERIAL_TYPES } from '../models/collection-point.model';
 import { CollectionPointService } from '../services/collection-point.service';
 import { apiErrorMessage } from '../shared/api-error';
@@ -17,8 +17,12 @@ export class CollectionPointFormComponent {
     private readonly builder = inject(FormBuilder).nonNullable;
     private readonly service = inject(CollectionPointService);
     private readonly router = inject(Router);
+    private readonly route = inject(ActivatedRoute);
     private readonly destroyRef = inject(DestroyRef);
     private readonly requiredText = [Validators.required, Validators.pattern(/\S/)];
+    readonly pointId = signal<string | null>(null);
+    readonly loading = signal(false);
+    readonly ready = signal(false);
     readonly saving = signal(false);
     readonly submitted = signal(false);
     readonly error = signal('');
@@ -47,13 +51,47 @@ export class CollectionPointFormComponent {
         acceptedMaterials: this.builder.array(this.materialTypes.map(() => this.builder.control(false)))
     });
 
+    constructor() {
+        this.route.paramMap.pipe(
+            map((params) => params.get('id')),
+            distinctUntilChanged(),
+            switchMap((id) => {
+                this.pointId.set(id);
+                this.form.reset();
+                this.submitted.set(false);
+                this.error.set('');
+                this.ready.set(false);
+                this.loading.set(!!id);
+
+                if (!id) { return of(null); }
+
+                return this.service.findById(id).pipe(catchError((error: unknown) => {
+                    this.error.set(apiErrorMessage(error));
+                    return of(null);
+                }));
+            }),
+            takeUntilDestroyed(this.destroyRef)
+        ).subscribe((point) => {
+            this.loading.set(false);
+            this.ready.set(!this.pointId() || !!point);
+
+            if (point) {
+                this.form.patchValue({
+                    ...point,
+                    description: point.description ?? '',
+                    acceptedMaterials: this.materialTypes.map((material) => point.acceptedMaterials.includes(material))
+                });
+            }
+        });
+    }
+
     get hasSelectedMaterial(): boolean {
         return this.form.controls.acceptedMaterials.getRawValue().some(Boolean);
     }
 
     save(): void {
 
-        if (this.saving()) { return; }
+        if (this.saving() || !this.ready()) { return; }
 
         this.submitted.set(true);
         this.error.set('');
@@ -63,8 +101,12 @@ export class CollectionPointFormComponent {
 
         const value = this.form.getRawValue();
         const acceptedMaterials = this.materialTypes.filter((material, index) => value.acceptedMaterials[index]);
+        const input = { ...value, acceptedMaterials };
+        const id = this.pointId();
+        const request = id ? this.service.update(id, input) : this.service.create(input);
         this.saving.set(true);
-        this.service.create({ ...value, acceptedMaterials }).pipe(
+        request.pipe(
+            takeUntil(this.route.paramMap.pipe(skip(1))),
             takeUntilDestroyed(this.destroyRef),
             finalize(() => this.saving.set(false))
         ).subscribe({

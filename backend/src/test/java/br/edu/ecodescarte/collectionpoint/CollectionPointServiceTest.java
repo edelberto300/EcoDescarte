@@ -2,9 +2,12 @@ package br.edu.ecodescarte.collectionpoint;
 
 import static br.edu.ecodescarte.TestData.point;
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.verifyNoInteractions;
 import static org.mockito.Mockito.when;
@@ -14,6 +17,7 @@ import br.edu.ecodescarte.exception.BusinessException;
 import br.edu.ecodescarte.exception.ResourceNotFoundException;
 import java.util.List;
 import java.util.Optional;
+import org.bson.Document;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.junit.jupiter.params.ParameterizedTest;
@@ -24,6 +28,10 @@ import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.data.domain.Sort;
+import org.springframework.data.mongodb.core.FindAndModifyOptions;
+import org.springframework.data.mongodb.core.MongoTemplate;
+import org.springframework.data.mongodb.core.query.Query;
+import org.springframework.data.mongodb.core.query.Update;
 
 @ExtendWith(MockitoExtension.class)
 class CollectionPointServiceTest {
@@ -33,6 +41,9 @@ class CollectionPointServiceTest {
 
     @Mock
     private DisposalRepository disposalRepository;
+
+    @Mock
+    private MongoTemplate mongoTemplate;
 
     @InjectMocks
     private CollectionPointService service;
@@ -49,6 +60,44 @@ class CollectionPointServiceTest {
         assertNull(captor.getValue().id());
         assertEquals(point(null), captor.getValue());
         assertEquals("generated-id", result.id());
+    }
+
+    @Test
+    void updatesAtomicallyWithoutChangingIdentityOrDisposals() {
+        when(mongoTemplate.findAndModify(any(Query.class), any(Update.class),
+                any(FindAndModifyOptions.class), eq(CollectionPoint.class))).thenReturn(point("point-1"));
+
+        assertEquals(point("point-1"), service.update("point-1", point("client-id")));
+
+        ArgumentCaptor<Query> query = ArgumentCaptor.forClass(Query.class);
+        ArgumentCaptor<Update> update = ArgumentCaptor.forClass(Update.class);
+        ArgumentCaptor<FindAndModifyOptions> options = ArgumentCaptor.forClass(FindAndModifyOptions.class);
+        verify(mongoTemplate).findAndModify(query.capture(), update.capture(), options.capture(), eq(CollectionPoint.class));
+        assertEquals("point-1", query.getValue().getQueryObject().get("id"));
+        Document fields = (Document) update.getValue().getUpdateObject().get("$set");
+        assertEquals(5, fields.size());
+        assertEquals(point(null).name(), fields.get("name"));
+        assertEquals(point(null).description(), fields.get("description"));
+        assertEquals(point(null).address(), fields.get("address"));
+        assertEquals(point(null).acceptedMaterials(), fields.get("acceptedMaterials"));
+        assertEquals(point(null).openingHours(), fields.get("openingHours"));
+        assertFalse(options.getValue().isUpsert());
+        assertTrue(options.getValue().isReturnNew());
+        verifyNoInteractions(repository, disposalRepository);
+    }
+
+    @Test
+    void rejectsUpdateWhenPointWasDeleted() {
+        assertThrows(ResourceNotFoundException.class, () -> service.update("missing", point(null)));
+        verifyNoInteractions(repository, disposalRepository);
+    }
+
+    @ParameterizedTest
+    @NullAndEmptySource
+    @ValueSource(strings = " ")
+    void rejectsUpdateWithoutId(String id) {
+        assertThrows(BusinessException.class, () -> service.update(id, point(null)));
+        verifyNoInteractions(mongoTemplate, repository, disposalRepository);
     }
 
     @Test

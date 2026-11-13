@@ -21,6 +21,10 @@ export class CollectionPointService {
         return this.http.post<CollectionPoint>(this.url, point);
     }
 
+    update(id: string, point: CollectionPointInput): Observable<CollectionPoint> {
+        return this.http.put<CollectionPoint>(`${this.url}/${encodeURIComponent(id)}`, point);
+    }
+
     delete(id: string): Observable<void> {
         return this.http.delete<void>(`${this.url}/${encodeURIComponent(id)}`);
     }

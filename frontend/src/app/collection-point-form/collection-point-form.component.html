@@ -1,13 +1,17 @@
 <a class="back-link" routerLink="/">← Voltar aos pontos de coleta</a>
 <div class="page-intro">
     <p class="eyebrow">Pontos de coleta</p>
-    <h1>Cadastrar ponto de coleta</h1>
+    <h1>{{ pointId() ? 'Editar ponto de coleta' : 'Cadastrar ponto de coleta' }}</h1>
     <p class="muted">Informe os dados do local e os materiais que ele recebe.</p>
 </div>
 
+@if (loading()) {
+    <p class="state" role="status">Carregando ponto de coleta…</p>
+}
+
 <form class="panel form-panel" [formGroup]="form" (ngSubmit)="save()" [attr.aria-busy]="saving()">
     <p class="muted">Todos os campos são obrigatórios, exceto a descrição.</p>
-    <fieldset [disabled]="saving()">
+    <fieldset [disabled]="saving() || !ready()">
         <legend class="sr-only">Dados do ponto de coleta</legend>
         <div class="form-grid">
             <div class="field full-width">
@@ -67,7 +71,7 @@
     }
 
     <div class="actions">
-        <button class="button" type="submit" [disabled]="saving()">{{ saving() ? 'Salvando…' : 'Salvar' }}</button>
-        <a class="button secondary" routerLink="/">Cancelar</a>
+        <button class="button" type="submit" [disabled]="saving() || !ready()">{{ saving() ? 'Salvando…' : 'Salvar' }}</button>
+        <a class="button secondary" [routerLink]="pointId() ? ['/collection-points', pointId()] : ['/']">Cancelar</a>
     </div>
 </form>
